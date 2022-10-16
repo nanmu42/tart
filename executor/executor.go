@@ -9,7 +9,10 @@ import (
 	"os"
 	"tart/network"
 	"tart/rootfs"
+	"tart/version"
 	"time"
+
+	"github.com/fatih/color"
 
 	"golang.org/x/crypto/ssh"
 
@@ -133,6 +136,22 @@ func NewExecutor(opt Option) (e *Executor, err error) {
 
 // Prepare start the VM, clones the repo.
 func (e *Executor) Prepare(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			_ = e.redLine("Build failed during preparing: %s", err)
+		}
+	}()
+
+	err = e.yellowLine("Running with %s on %s\n", version.FullName, e.config.IP)
+	if err != nil {
+		return
+	}
+
+	err = e.blueLine("Spinning up microVM...")
+	if err != nil {
+		return
+	}
+
 	machine, err := firecracker.NewMachine(ctx, firecracker.Config{
 		KernelImagePath: e.config.KernelPath,
 		KernelArgs:      e.kernelArgs(),
@@ -162,12 +181,22 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 		return
 	}
 
+	err = e.greenLine("MicroVM %s is initialized, starting...", machine.Cfg.VMID)
+	if err != nil {
+		return
+	}
+
 	err = machine.Start(e.ctx)
 	if err != nil {
 		err = fmt.Errorf("starting the VM: %w", err)
 		return
 	}
 	e.machine = machine
+
+	err = e.greenLine("MicroVM started, connecting...")
+	if err != nil {
+		return
+	}
 
 	e.ssh, err = e.dialSSH()
 	if err != nil {
@@ -184,6 +213,11 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 
 	session.Stdout = e.logSink
 	session.Stderr = e.logSink
+
+	err = e.greenLine("MicroVM connected, cloning repo and checking out...")
+	if err != nil {
+		return
+	}
 
 	var buf bytes.Buffer
 	err = e.build.PrepareScript(&buf)
@@ -203,10 +237,26 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 		return
 	}
 
+	err = e.greenLine("Repo cloned and checked out.")
+	if err != nil {
+		return
+	}
+
 	return
 }
 
 func (e *Executor) Build(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			_ = e.redLine("Build failed: %s", err)
+		}
+	}()
+
+	err = e.blueLine("build phase starting...")
+	if err != nil {
+		return
+	}
+
 	session, err := e.ssh.NewSession()
 	if err != nil {
 		err = fmt.Errorf("init ssh session: %w", err)
@@ -232,6 +282,11 @@ func (e *Executor) Build(ctx context.Context) (err error) {
 	err = session.Wait()
 	if err != nil {
 		err = fmt.Errorf("running build script over SSH: %w", err)
+		return
+	}
+
+	err = e.greenLine("Job succeeded")
+	if err != nil {
 		return
 	}
 
@@ -280,6 +335,56 @@ func (e *Executor) dialSSH() (client *ssh.Client, err error) {
 	client, err = ssh.Dial("tcp", e.config.IP, config)
 	if err != nil {
 		err = fmt.Errorf("dialing ssh: %w", err)
+		return
+	}
+
+	return
+}
+
+func (e *Executor) redLine(format string, args ...any) (err error) {
+	_, err = io.WriteString(e.logSink, color.HiRedString(format+"\n", args...))
+	if err != nil {
+		err = fmt.Errorf("print red line: %w", err)
+		return
+	}
+
+	return
+}
+
+func (e *Executor) yellowLine(format string, args ...any) (err error) {
+	_, err = io.WriteString(e.logSink, color.HiYellowString(format+"\n", args...))
+	if err != nil {
+		err = fmt.Errorf("print yellow line: %w", err)
+		return
+	}
+
+	return
+}
+
+func (e *Executor) blueLine(format string, args ...any) (err error) {
+	_, err = io.WriteString(e.logSink, color.HiBlueString(format+"\n", args...))
+	if err != nil {
+		err = fmt.Errorf("print blue line: %w", err)
+		return
+	}
+
+	return
+}
+
+func (e *Executor) greenLine(format string, args ...any) (err error) {
+	_, err = io.WriteString(e.logSink, color.HiGreenString(format+"\n", args...))
+	if err != nil {
+		err = fmt.Errorf("print green line: %w", err)
+		return
+	}
+
+	return
+}
+
+func (e *Executor) line(format string, args ...any) (err error) {
+	_, err = fmt.Fprintf(e.logSink, format+"\n", args...)
+	if err != nil {
+		err = fmt.Errorf("print line: %w", err)
 		return
 	}
 

@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/fatih/color v1.13.0
 	github.com/firecracker-microvm/firecracker-go-sdk v1.0.0
+	github.com/spf13/cobra v1.6.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/atomic v1.10.0
 	go.uber.org/zap v1.23.0
@@ -30,6 +31,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
@@ -40,6 +42,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20220913150850-18c4f4234207 // indirect
 	go.mongodb.org/mongo-driver v1.10.3 // indirect

@@ -39,8 +39,14 @@ func (b *Build) repoURL() string {
 }
 
 func (b *Build) PrepareScript(w io.Writer) (err error) {
-	_, err = io.WriteString(w, fmt.Sprintf(`git clone -b %s --single-branch %s %s`,
+	_, err = io.WriteString(w, "set -euo pipefail\n")
+	if err != nil {
+		return
+	}
+
+	_, err = io.WriteString(w, fmt.Sprintf(`git clone -b %s --single-branch --depth %d %s %s\n`,
 		b.job.GitInfo.Ref,
+		b.job.GitInfo.Depth,
 		b.job.GitInfo.RepoURL,
 		b.workingDir,
 	))

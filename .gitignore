@@ -5,3 +5,6 @@
 # RootFS and Kernel
 *.bin
 *.ext4
+
+# Binaries
+/cmd/tart/tart
