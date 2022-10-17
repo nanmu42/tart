@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/fatih/color v1.13.0
 	github.com/firecracker-microvm/firecracker-go-sdk v1.0.0
+	github.com/pelletier/go-toml/v2 v2.0.5
 	github.com/spf13/cobra v1.6.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/atomic v1.10.0

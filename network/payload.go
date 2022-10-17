@@ -39,9 +39,9 @@ type Info struct {
 	// e.g. amd64
 	Architecture string `json:"architecture"`
 	// e.g. shell
-	Executor string `json:"executor"`
+	Executor string `json:"executor,omitempty"`
 	// e.g. bash
-	Shell string `json:"shell"`
+	Shell string `json:"shell,omitempty"`
 	// supported features
 	Features Features `json:"features"`
 	// e.g. gitlab-runner

@@ -103,6 +103,17 @@ func (c *Client) info() Info {
 	}
 }
 
+func (c *Client) infoForRegistration() Info {
+	return Info{
+		Architecture: "amd64",
+		Features:     c.features,
+		Name:         version.Name,
+		Platform:     "linux",
+		Revision:     version.Revision,
+		Version:      version.FullName,
+	}
+}
+
 func drainAndCloseBody(resp *http.Response) {
 	_, _ = io.Copy(io.Discard, resp.Body)
 	_ = resp.Body.Close()
@@ -114,8 +125,8 @@ func isResponseOK(resp *http.Response) (err error) {
 	}
 
 	body := make([]byte, 256)
-	_, _ = io.ReadFull(resp.Body, body)
-	err = fmt.Errorf("API responds with code %d(%s), body: %q", resp.StatusCode, resp.Status, body)
+	n, _ := io.ReadFull(resp.Body, body)
+	err = fmt.Errorf("API responds with %s, body: %q", resp.Status, body[:n])
 	return
 }
 
@@ -142,7 +153,7 @@ func (c *Client) Register(ctx context.Context, param RegisterParam) (accessToken
 	body := RegisterReq{
 		Token:           param.Token,
 		Description:     param.Description,
-		Info:            c.info(),
+		Info:            c.infoForRegistration(),
 		Locked:          false,
 		MaintenanceNote: "Tart is an educational purpose toy CI runner.",
 		Paused:          false,

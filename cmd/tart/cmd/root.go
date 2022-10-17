@@ -12,6 +12,8 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgPath, "config", "f", "./tart.toml", "Path to the config file")
+	_ = rootCmd.MarkPersistentFlagFilename("f")
+	_ = rootCmd.MarkPersistentFlagFilename("config")
 }
 
 // rootCmd represents the base command when called without any subcommands

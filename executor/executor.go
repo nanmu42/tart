@@ -22,15 +22,40 @@ import (
 )
 
 type Config struct {
-	KernelPath string
-	RootFSPath string
+	// path to linux kernel file
+	KernelPath string `comment:"path to linux kernel file"`
+	// path to RootFS file
+	RootFSPath string `comment:"path to RootFS file"`
 
-	IP        string
-	GatewayIP string
-	Netmask   string
+	// IP address of Firecracker microVM
+	IP string `comment:"IP address of Firecracker microVM"`
+	// Gateway IP address, normally is the tap address
+	GatewayIP string `comment:"Gateway IP address, normally is the tap address"`
+	// Netmask like 255.255.255.0
+	Netmask string `comment:"Netmask like 255.255.255.0"`
 
-	TapDevice string
-	TapMac    string
+	// Tap device name like tap0
+	TapDevice string `comment:"Tap device name like tap0"`
+	// microVM tap MAC address
+	TapMac string `comment:"microVM tap MAC address"`
+}
+
+func SupportFeatures() network.Features {
+	return network.Features{
+		Shared:                  true,
+		MultiBuildSteps:         true,
+		Cancelable:              true,
+		ReturnExitCode:          true,
+		Variables:               true,
+		RawVariables:            true,
+		Artifacts:               true,
+		UploadMultipleArtifacts: true,
+		UploadRawArtifacts:      true,
+		ArtifactsExclude:        true,
+		TraceReset:              true,
+		TraceChecksum:           true,
+		TraceSize:               true,
+	}
 }
 
 func (c Config) Validate() (err error) {
@@ -128,6 +153,11 @@ func NewExecutor(opt Option) (e *Executor, err error) {
 	_, err = io.Copy(e.tempRootFS, rootFSOrigin)
 	if err != nil {
 		err = fmt.Errorf("clone rootFS: %w", err)
+		return
+	}
+	err = e.tempRootFS.Sync()
+	if err != nil {
+		err = fmt.Errorf("file system sync on rootFS: %w", err)
 		return
 	}
 
