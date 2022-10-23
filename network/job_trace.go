@@ -153,6 +153,7 @@ func (t *JobTrace) finish(ctx context.Context, param finishTraceParam) (err erro
 		err = fmt.Errorf("closing temp log file: %w", err)
 		return
 	}
+	_ = os.Remove(t.sink.Name())
 
 	return
 }

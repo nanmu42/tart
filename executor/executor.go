@@ -12,6 +12,8 @@ import (
 	"tart/version"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/fatih/color"
 
 	"golang.org/x/crypto/ssh"
@@ -92,6 +94,7 @@ func (c Config) Validate() (err error) {
 }
 
 type Option struct {
+	Logger *zap.Logger
 	// The context must not be cancelled while the microVM is running.
 	Ctx      context.Context
 	Build    *Build
@@ -101,18 +104,28 @@ type Option struct {
 }
 
 type Executor struct {
+	logger *zap.Logger
 	// The context must not be cancelled while the microVM is running.
 	ctx    context.Context
 	build  *Build
 	config Config
 
-	logSink    io.Writer
-	tempRootFS *os.File
-	machine    *firecracker.Machine
-	ssh        *ssh.Client
+	logSink        io.Writer
+	socketFilePath string
+	tempRootFS     *os.File
+	machine        *firecracker.Machine
+	ssh            *ssh.Client
 }
 
 func NewExecutor(opt Option) (e *Executor, err error) {
+	if opt.Logger == nil {
+		err = errors.New("logger must be non-nil")
+		return
+	}
+	if opt.Ctx == nil {
+		err = errors.New("ctx must be non-nil")
+		return
+	}
 	if opt.Build == nil {
 		err = errors.New("build is required")
 		return
@@ -128,7 +141,10 @@ func NewExecutor(opt Option) (e *Executor, err error) {
 		return
 	}
 
+	logger := opt.Logger.With(zap.Int("jobId", opt.Build.job.ID))
+
 	e = &Executor{
+		logger:     logger,
 		ctx:        opt.Ctx,
 		build:      opt.Build,
 		config:     opt.Config,
@@ -164,10 +180,18 @@ func NewExecutor(opt Option) (e *Executor, err error) {
 	return
 }
 
+type freezeReader struct{}
+
+func (f freezeReader) Read(p []byte) (n int, err error) {
+	// freezes here
+	select {}
+}
+
 // Prepare start the VM, clones the repo.
 func (e *Executor) Prepare(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
+			e.logger.Debug("Build failed during preparing", zap.Error(err))
 			_ = e.redLine("Build failed during preparing: %s", err)
 		}
 	}()
@@ -177,12 +201,22 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 		return
 	}
 
+	e.logger.Debug("Spinning up microVM...")
 	err = e.blueLine("Spinning up microVM...")
 	if err != nil {
 		return
 	}
 
+	e.socketFilePath = fmt.Sprintf("/tmp/tart-firecracker-%d.socket", time.Now().UnixNano())
+	cmd := firecracker.VMCommandBuilder{}.
+		WithStdin(freezeReader{}).
+		WithStdout(io.Discard).
+		WithStderr(io.Discard).
+		WithSocketPath(e.socketFilePath).
+		Build(ctx)
+
 	machine, err := firecracker.NewMachine(ctx, firecracker.Config{
+		SocketPath:      e.socketFilePath,
 		KernelImagePath: e.config.KernelPath,
 		KernelArgs:      e.kernelArgs(),
 		Drives: []models.Drive{
@@ -205,12 +239,13 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 			MemSizeMib: firecracker.Int64(1024),
 			VcpuCount:  firecracker.Int64(2),
 		},
-	})
+	}, firecracker.WithProcessRunner(cmd))
 	if err != nil {
 		err = fmt.Errorf("init firecracker machine: %w", err)
 		return
 	}
 
+	e.logger.Debug("MicroVM is initialized, starting...", zap.String("VMID", machine.Cfg.VMID))
 	err = e.greenLine("MicroVM %s is initialized, starting...", machine.Cfg.VMID)
 	if err != nil {
 		return
@@ -223,15 +258,31 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 	}
 	e.machine = machine
 
+	e.logger.Debug("MicroVM started, connecting...")
 	err = e.greenLine("MicroVM started, connecting...")
 	if err != nil {
 		return
 	}
 
-	e.ssh, err = e.dialSSH()
-	if err != nil {
-		err = fmt.Errorf("establish SSH connection to VM: %w", err)
-		return
+	// retry until timeout since the VM is booting and may not be ready
+	sshCtx, cancelSSHCtx := context.WithTimeout(ctx, 10*time.Second)
+	defer cancelSSHCtx()
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+TRYSSH:
+	for {
+		select {
+		case <-sshCtx.Done():
+			err = fmt.Errorf("waiting for SSH connection to VM: %w", err)
+			return
+		case <-ticker.C:
+			e.ssh, err = e.dialSSH()
+			if err == nil {
+				break TRYSSH
+			}
+			e.logger.Debug("trying to establishing SSH connection to VM", zap.Error(err))
+		}
 	}
 
 	session, err := e.ssh.NewSession()
@@ -255,13 +306,15 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 		err = fmt.Errorf("forging prepare script: %w", err)
 		return
 	}
-	err = session.Run(buf.String())
+
+	e.logger.Debug("MicroVM connected, cloning repo and checking out...", zap.String("script", buf.String()))
+	err = session.Start(buf.String())
 	if err != nil {
 		err = fmt.Errorf("sending prepare script over SSH: %w", err)
 		return
 	}
 
-	err = session.Wait()
+	err = runUntilTimeout(e.build.Timeout(), session.Wait)
 	if err != nil {
 		err = fmt.Errorf("running prepare script over SSH: %w", err)
 		return
@@ -275,10 +328,27 @@ func (e *Executor) Prepare(ctx context.Context) (err error) {
 	return
 }
 
-func (e *Executor) Build(ctx context.Context) (err error) {
+type BuildResult struct {
+	Err           error
+	ExitCode      int
+	FailureReason network.FailureReason
+}
+
+// Build runs the build and returns encountered error.
+func (e *Executor) Build() (result BuildResult) {
+	var err error
+
 	defer func() {
 		if err != nil {
+			e.logger.Debug("Build failed", zap.Error(err))
 			_ = e.redLine("Build failed: %s", err)
+
+			if result.Err == nil {
+				result.Err = err
+			}
+			if result.FailureReason == "" {
+				result.FailureReason = network.FailureReasonRunnerSystemFailure
+			}
 		}
 	}()
 
@@ -303,18 +373,37 @@ func (e *Executor) Build(ctx context.Context) (err error) {
 		err = fmt.Errorf("forging build script: %w", err)
 		return
 	}
-	err = session.Run(buf.String())
+
+	e.logger.Debug("excuting build script", zap.String("script", buf.String()))
+	err = session.Start(buf.String())
 	if err != nil {
 		err = fmt.Errorf("sending build script over SSH: %w", err)
 		return
 	}
 
-	err = session.Wait()
+	err = runUntilTimeout(e.build.Timeout(), session.Wait)
+	switch typed := err.(type) {
+	case *ssh.ExitError:
+		result = BuildResult{
+			Err:           typed,
+			ExitCode:      typed.ExitStatus(),
+			FailureReason: network.FailureReasonScriptFailure,
+		}
+
+		return
+	case *ssh.ExitMissingError:
+		result = BuildResult{
+			Err:           err,
+			ExitCode:      0,
+			FailureReason: network.FailureReasonScriptFailure,
+		}
+	}
 	if err != nil {
 		err = fmt.Errorf("running build script over SSH: %w", err)
 		return
 	}
 
+	e.logger.Debug("Job succeeded")
 	err = e.greenLine("Job succeeded")
 	if err != nil {
 		return
@@ -324,31 +413,34 @@ func (e *Executor) Build(ctx context.Context) (err error) {
 }
 
 func (e *Executor) Close(ctx context.Context) (err error) {
-	_ = e.ssh.Close()
-
-	err = e.machine.Shutdown(ctx)
-	if err != nil {
-		err = e.machine.StopVMM()
+	if e.ssh != nil {
+		_ = e.ssh.Close()
 	}
-	if err != nil {
-		err = fmt.Errorf("stopping VM: %w", err)
-		return
+
+	if e.machine != nil {
+		err = e.machine.Shutdown(ctx)
+		if err != nil {
+			err = e.machine.StopVMM()
+		}
+		if err != nil {
+			err = fmt.Errorf("stopping VM: %w", err)
+			return
+		}
+	}
+	if e.socketFilePath != "" {
+		_ = os.Remove(e.socketFilePath)
 	}
 
 	tempRootFSPath := e.tempRootFS.Name()
 	_ = e.tempRootFS.Close()
 
-	err = os.Remove(tempRootFSPath)
-	if err != nil {
-		err = fmt.Errorf("removing temp rootFS file: %w", err)
-		return
-	}
+	_ = os.Remove(tempRootFSPath)
 
 	return
 }
 
 func (e *Executor) kernelArgs() string {
-	return "ro console=ttyS0 noapic reboot=k panic=1 pci=off nomodules " +
+	return "ro console=ttyS0 noapic reboot=k panic=1 pci=off nomodules random.trust_cpu=on " +
 		fmt.Sprintf("ip=%s::%s:%s::eth0:off", e.config.IP, e.config.GatewayIP, e.config.Netmask)
 }
 
@@ -362,7 +454,7 @@ func (e *Executor) dialSSH() (client *ssh.Client, err error) {
 		Timeout:         5 * time.Second,
 	}
 
-	client, err = ssh.Dial("tcp", e.config.IP, config)
+	client, err = ssh.Dial("tcp", e.config.IP+":22", config)
 	if err != nil {
 		err = fmt.Errorf("dialing ssh: %w", err)
 		return
@@ -416,6 +508,25 @@ func (e *Executor) line(format string, args ...any) (err error) {
 	if err != nil {
 		err = fmt.Errorf("print line: %w", err)
 		return
+	}
+
+	return
+}
+
+func runUntilTimeout(timeout time.Duration, run func() error) (err error) {
+	channel := make(chan error, 1)
+	timer := time.NewTicker(timeout)
+	defer timer.Stop()
+
+	go func() {
+		channel <- run()
+	}()
+
+	select {
+	case err = <-channel:
+		return
+	case <-timer.C:
+		err = fmt.Errorf("execution timed out after %s", timeout)
 	}
 
 	return

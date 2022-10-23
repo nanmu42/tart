@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"tart/helper"
 	"tart/network"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -44,7 +45,7 @@ func (b *Build) PrepareScript(w io.Writer) (err error) {
 		return
 	}
 
-	_, err = io.WriteString(w, fmt.Sprintf(`git clone -b %s --single-branch --depth %d %s %s\n`,
+	_, err = io.WriteString(w, fmt.Sprintf("git clone -b %s --single-branch --depth %d %s %s\n",
 		b.job.GitInfo.Ref,
 		b.job.GitInfo.Depth,
 		b.job.GitInfo.RepoURL,
@@ -121,4 +122,16 @@ func (b *Build) BuildScript(w io.Writer) (err error) {
 	}
 
 	return
+}
+
+func (b *Build) Timeout() time.Duration {
+	var timeout int
+	for _, step := range b.job.Steps {
+		if step.When != "on_success" {
+			continue
+		}
+		timeout += step.Timeout
+	}
+
+	return time.Duration(timeout) * time.Second
 }
