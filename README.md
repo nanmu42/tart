@@ -1,5 +1,10 @@
 # 蛋挞（Tart）
 
+<div align="center">
+  <img width="360" src="/uploads/7f9c01eb8a91f14df8a14d7f15a25d0c/tart-logo.png">
+</div>
+
+
 蛋挞是一个教学目的，非官方的Gitlab Runner，通过简明地实现Gitlab Runner功能的一个子集，展示Gitlab Runner的设计和实现方法。
 
 特色：
@@ -48,3 +53,7 @@ make
 MIT
 
 请自由享受和贡献开源。
+
+第三方项目许可证请参阅`THIRD_PARTY_LICENSES.md`.
+
+logo的照片来自于Ashley Byrd on Unsplash，Gopher在[gopherize.me](https://gopherize.me/)生成。
