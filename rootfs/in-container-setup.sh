@@ -9,9 +9,9 @@ deb http://mirrors.bfsu.edu.cn/ubuntu/ jammy-security main restricted universe m
 EOF
 
 # necessary packages, including systemd and ssh server
-packages="ca-certificates udev systemd-sysv iproute2 curl tzdata zip openssh-server git"
+packages="ca-certificates udev systemd-sysv iproute2 curl tzdata zip openssh-server git build-essential"
 DEBIAN_FRONTEND=noninteractive apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y $packages < /dev/null # by default apt-get openssh-server reads from Stdin, stops script execution.
+DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y $packages < /dev/null # by default apt-get openssh-server reads from Stdin, stops script execution.
 rm -rf /var/lib/apt/lists/* # clear APT cache
 
 # ssh login method

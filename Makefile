@@ -15,5 +15,5 @@ tart: tart.bin
 
 %.bin: dir
 	cd cmd/$* && \
-	go build -trimpath -ldflags "-s -w -X tart/version.Version=$(VERSION) -X tart/version.REVISION=$(REVISION)" && \
+	go build -trimpath -ldflags "-s -w -X tart/version.Tag=$(VERSION) -X tart/version.Revision=$(REVISION)" && \
 	cp $* $(PWD)/bin/$*

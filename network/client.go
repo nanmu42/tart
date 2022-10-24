@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"tart/version"
+	"time"
 
 	"go.uber.org/atomic"
 )
@@ -250,7 +251,7 @@ type UpdateJobParam struct {
 	FailureReason FailureReason
 }
 
-func (c *Client) UpdateJob(ctx context.Context, param UpdateJobParam) (err error) {
+func (c *Client) updateJob(ctx context.Context, param UpdateJobParam) (backoff time.Duration, err error) {
 	reqBody := UpdateJobReq{
 		Checksum:      param.TraceChecksum,
 		ExitCode:      param.ExitCode,
@@ -282,7 +283,50 @@ func (c *Client) UpdateJob(ctx context.Context, param UpdateJobParam) (err error
 	if err != nil {
 		return
 	}
+	if resp.StatusCode == http.StatusAccepted {
+		// Refers to Gitlab repo at
+		// lib/gitlab/ci/runner/backoff.rb:24
+		backoffSeconds, _ := strconv.Atoi(resp.Header.Get("X-GitLab-Trace-Update-Interval"))
+		backoff = time.Duration(backoffSeconds) * time.Second
+	}
 
+	return
+}
+
+func (c *Client) UpdateJob(ctx context.Context, param UpdateJobParam) (err error) {
+	const maxRetry = 8
+
+	backoff, err := c.updateJob(ctx, param)
+	if err != nil {
+		return
+	}
+	if backoff == 0 {
+		return
+	}
+
+	// Gitlab is not ready to accept our job status update, let's try again
+	timer := time.NewTimer(backoff)
+	defer timer.Stop()
+	for i := 1; i <= maxRetry; i++ {
+		select {
+		case <-ctx.Done():
+			err = fmt.Errorf("retrying to update the job status for the %d time: %w", i, ctx.Err())
+			return
+		case <-timer.C:
+			backoff, err = c.updateJob(ctx, param)
+			if err != nil {
+				err = fmt.Errorf("retrying to update the job status for the %d time: %w", i, err)
+				return
+			}
+			if backoff == 0 {
+				return
+			}
+
+			timer.Reset(backoff)
+		}
+	}
+
+	err = fmt.Errorf("gitlab still asks for job status update backoff(%s) after max trial %d times", backoff.String(), maxRetry)
 	return
 }
 
