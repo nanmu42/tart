@@ -1,0 +1,14 @@
+variables:
+  # speed up go dependency downloading
+  GOPROXY: "https://goproxy.cn,direct"
+
+# we have go and build-essential pre-installed
+our-exceiting-job:
+  script:
+    - echo "run test"
+    - go test ./...
+    - echo "build tart"
+    - make
+    - echo "run tart"
+    - cd bin
+    - ./tart
