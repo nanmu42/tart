@@ -12,3 +12,4 @@ our-exceiting-job:
     - echo "run tart"
     - cd bin
     - ./tart
+    - ./tart version

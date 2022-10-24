@@ -7,6 +7,8 @@
 
 蛋挞是一个教学目的，非官方的Gitlab Runner，通过简明地实现Gitlab Runner功能的一个子集，展示Gitlab Runner的设计和实现方法。
 
+举个例子，蛋挞可以[运行自己的CI job，运行自己的测试和编译自己](https://jihulab.com/nanmu42/tart/-/jobs/4980002)。
+
 特色：
 
 * 使用[Firecracker](https://firecracker-microvm.github.io/)和`/dev/kvm`，让每个job在一个**两秒内**启动的虚拟机中运行，我目前没在公开资料里查到这么做的；
