@@ -5,6 +5,7 @@
 # RootFS and Kernel
 *.bin
 *.ext4
+*.zip
 
 # Binaries
 /bin

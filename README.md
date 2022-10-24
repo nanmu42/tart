@@ -1,7 +1,7 @@
 # 蛋挞（Tart）
 
 <div align="center">
-  <img width="360" src="/uploads/7f9c01eb8a91f14df8a14d7f15a25d0c/tart-logo.png">
+  <img width="360" src="https://user-images.githubusercontent.com/8143068/197567829-b2d9783d-a660-41c6-bea4-5945dfa1ccb3.png">
 </div>
 
 
