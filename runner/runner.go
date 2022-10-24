@@ -79,17 +79,17 @@ func (r *Runner) RunJob(ctx context.Context, job network.RequestJobResp) (err er
 	}
 	defer func() {
 		if result.Err != nil {
-			r.logger.Debug("job failed", zap.Error(result.Err))
+			r.logger.Info("job failed", zap.Error(result.Err), zap.Int("jobId", job.ID))
 			_ = traceSink.Fail(ctx, result.ExitCode, result.FailureReason)
 			return
 		}
 		if err != nil {
-			r.logger.Debug("job failed", zap.Error(err))
+			r.logger.Info("job failed", zap.Error(err), zap.Int("jobId", job.ID))
 			_ = traceSink.Fail(ctx, 0, network.FailureReasonRunnerSystemFailure)
 			return
 		}
 
-		r.logger.Debug("job succeeded")
+		r.logger.Info("job succeeded", zap.Int("jobId", job.ID))
 		_ = traceSink.Complete(ctx)
 	}()
 
