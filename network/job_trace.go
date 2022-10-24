@@ -68,6 +68,9 @@ func NewJobTrace(opt JobTraceOpt) (trace *JobTrace, err error) {
 }
 
 func (t *JobTrace) Write(p []byte) (n int, err error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	select {
 	case <-t.finished:
 		err = errors.New("trace collecting is finished")
@@ -75,9 +78,6 @@ func (t *JobTrace) Write(p []byte) (n int, err error) {
 	default:
 		// relax
 	}
-
-	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	n, err = t.sink.Write(p)
 	if err != nil {

@@ -14,5 +14,5 @@ var (
 var FullName string
 
 func init() {
-	FullName = fmt.Sprintf("%s %s(%s)", Name, Tag, Revision)
+	FullName = fmt.Sprintf("%s %s", Name, Tag)
 }

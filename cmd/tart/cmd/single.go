@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"tart/executor"
 	"tart/network"
@@ -54,6 +56,10 @@ var singleCmd = &cobra.Command{
 
 		logger.Info("start to polling new job...")
 		job, err := tart.PollNewJob(ctx)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			logger.Info("received signal, exit.")
+			return
+		}
 		if err != nil {
 			err = fmt.Errorf("polling new job: %w", err)
 			return

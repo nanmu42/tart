@@ -30,6 +30,8 @@ var (
 var registerCmd = &cobra.Command{
 	Use:   "register",
 	Short: "Register self to Gitlab and print TOML config into stdout",
+	Example: `# redirect the output into config file
+tart register --endpoint https://gitlab.example.com --token your_token_here > tart.toml`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		ctx := cmd.Context()
 

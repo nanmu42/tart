@@ -44,19 +44,15 @@ type Config struct {
 
 func SupportFeatures() network.Features {
 	return network.Features{
-		Shared:                  true,
-		MultiBuildSteps:         true,
-		Cancelable:              true,
-		ReturnExitCode:          true,
-		Variables:               true,
-		RawVariables:            true,
-		Artifacts:               true,
-		UploadMultipleArtifacts: true,
-		UploadRawArtifacts:      true,
-		ArtifactsExclude:        true,
-		TraceReset:              true,
-		TraceChecksum:           true,
-		TraceSize:               true,
+		Shared:          true,
+		MultiBuildSteps: true,
+		Cancelable:      true,
+		ReturnExitCode:  true,
+		Variables:       true,
+		RawVariables:    true,
+		TraceReset:      true,
+		TraceChecksum:   true,
+		TraceSize:       true,
 	}
 }
 

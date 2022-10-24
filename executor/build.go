@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color"
 )
 
+// Build handles CI build script generation.
 type Build struct {
 	job        network.RequestJobResp
 	workingDir string

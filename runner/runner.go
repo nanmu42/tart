@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"tart/executor"
 	"tart/network"
 	"time"
@@ -78,14 +79,17 @@ func (r *Runner) RunJob(ctx context.Context, job network.RequestJobResp) (err er
 	}
 	defer func() {
 		if result.Err != nil {
+			r.logger.Debug("job failed", zap.Error(result.Err))
 			_ = traceSink.Fail(ctx, result.ExitCode, result.FailureReason)
 			return
 		}
 		if err != nil {
+			r.logger.Debug("job failed", zap.Error(err))
 			_ = traceSink.Fail(ctx, 0, network.FailureReasonRunnerSystemFailure)
 			return
 		}
 
+		r.logger.Debug("job succeeded")
 		_ = traceSink.Complete(ctx)
 	}()
 
@@ -110,6 +114,11 @@ func (r *Runner) RunJob(ctx context.Context, job network.RequestJobResp) (err er
 		return
 	}
 	defer exe.Close(ctx)
+
+	// since we are building our own runner, we may add some meme we like.
+	if isTodayThursday() {
+		_, _ = io.WriteString(traceSink, crazyThursdayBanner())
+	}
 
 	err = exe.Prepare(ctx)
 	if err != nil {
