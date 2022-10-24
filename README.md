@@ -11,9 +11,10 @@
 
 特色：
 
+* 折腾；
 * 使用[Firecracker](https://firecracker-microvm.github.io/)和`/dev/kvm`，让每个job在一个**两秒内**启动的虚拟机中运行，我目前没在公开资料里查到这么做的；
 * 代码量少，大概2000行实现了Gitlab Runner的核心功能：job的获取、执行、环境隔离、日志和结果的上报；
-* 折腾。
+* 在每个星期四运行job会有特殊效果。
 
 只实现了核心功能，产物上传、service这些功能是不支持的。换句话说，不要用于生产环境（真的会有人这么做吗）。
 
@@ -38,8 +39,6 @@ sudo setfacl -m u:${USER}:rw /dev/kvm
 7. 在Gitlab上触发CI，为了确保job会调度到tart上，你可能得禁用项目的shared runner
 8. 观看tart工作（或者爆炸）
 
-注：在每个星期四运行工作会有特殊效果。
-
 ## 编译方式
 
 ```bash
@@ -49,6 +48,10 @@ make
 产物在`bin`文件夹中。
 
 虚拟机的RootFS和Linux内核编译请参考`rootfs`文件夹。
+
+## 为啥叫蛋挞？
+
+我喜欢吃蛋挞。
 
 ## 许可证
 
