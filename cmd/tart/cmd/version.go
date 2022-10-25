@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"tart/version"
+
+	"github.com/nanmu42/tart/version"
 
 	"github.com/spf13/cobra"
 )

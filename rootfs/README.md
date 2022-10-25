@@ -12,6 +12,10 @@ Use `make vmlinux -j$(nproc)` can accelerate the building process.
 bash build-jammy.sh
 ```
 
+## Network
+
+Please refer to `setup-tuntap.sh`.
+
 ## Boot a VM
 
 After configure a TAP device following the [official doc](https://github.com/firecracker-microvm/firecracker/blob/main/docs/network-setup.md), run:

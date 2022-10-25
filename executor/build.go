@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"tart/helper"
-	"tart/network"
 	"time"
+
+	"github.com/nanmu42/tart/helper"
+	"github.com/nanmu42/tart/network"
 
 	"github.com/fatih/color"
 )

@@ -6,7 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"tart/config"
+
+	"github.com/nanmu42/tart/config"
 
 	"github.com/pelletier/go-toml/v2"
 

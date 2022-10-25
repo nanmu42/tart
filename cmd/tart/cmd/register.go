@@ -3,9 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"tart/config"
-	"tart/executor"
-	"tart/network"
+
+	"github.com/nanmu42/tart/config"
+	"github.com/nanmu42/tart/executor"
+	"github.com/nanmu42/tart/network"
 
 	"github.com/pelletier/go-toml/v2"
 

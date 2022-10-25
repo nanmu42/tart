@@ -1,6 +1,6 @@
 package main
 
-import "tart/cmd/tart/cmd"
+import "github.com/nanmu42/tart/cmd/tart/cmd"
 
 func main() {
 	cmd.Execute()

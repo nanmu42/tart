@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"tart/executor"
-	"tart/network"
-	"tart/runner"
+
+	"github.com/nanmu42/tart/executor"
+	"github.com/nanmu42/tart/network"
+	"github.com/nanmu42/tart/runner"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"

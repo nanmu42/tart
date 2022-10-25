@@ -1,6 +1,6 @@
 package config
 
-import "tart/executor"
+import "github.com/nanmu42/tart/executor"
 
 type Config struct {
 	// Gitlab instance URL, only scheme + host, e.g. https://gitlab.example.com

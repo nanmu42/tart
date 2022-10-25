@@ -1,4 +1,4 @@
-module tart
+module github.com/nanmu42/tart
 
 go 1.19
 

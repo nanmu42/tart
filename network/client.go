@@ -10,8 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"tart/version"
 	"time"
+
+	"github.com/nanmu42/tart/version"
 
 	"go.uber.org/atomic"
 )

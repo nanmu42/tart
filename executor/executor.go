@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"tart/network"
-	"tart/rootfs"
-	"tart/version"
 	"time"
+
+	"github.com/nanmu42/tart/network"
+	"github.com/nanmu42/tart/rootfs"
+	"github.com/nanmu42/tart/version"
 
 	"go.uber.org/zap"
 

@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"tart/executor"
-	"tart/network"
 	"time"
+
+	"github.com/nanmu42/tart/executor"
+	"github.com/nanmu42/tart/network"
 
 	"go.uber.org/zap"
 )
