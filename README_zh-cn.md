@@ -3,7 +3,7 @@
 # 蛋挞（Tart）
 
 [![GoDoc](https://godoc.org/github.com/nanmu42/tart?status.svg)](https://godoc.org/github.com/nanmu42/tart)
-[![Build status](https://jihulab.com/nanmu42/tart/badges/main/pipeline.svg)](https://jihulab.com/nanmu42/tart/-/pipelines)
+[![Build status](https://jihulab.com/nanmu42/tart/badges/master/pipeline.svg)](https://jihulab.com/nanmu42/tart/-/pipelines)
 
 <div align="center">
   <img width="360" src="https://user-images.githubusercontent.com/8143068/197567829-b2d9783d-a660-41c6-bea4-5945dfa1ccb3.png">
